@@ -40,8 +40,11 @@ const publicOrder = (o) => ({
   ...(o.delivery_estimate ? { delivery_estimate: o.delivery_estimate } : {}),
 });
 
+// Paystack requires a valid email, but WhatsApp customers do not have one on file.
+// example.com is reserved for documentation, so receipts sent here go nowhere.
+// For real customers: capture their email, or use a domain Bisi owns (CUSTOMER_EMAIL_DOMAIN).
 const placeholderEmail = (phone) =>
-  `${String(phone).replace(/\D/g, '') || 'customer'}@bisiprovisions.example`;
+  `${String(phone).replace(/\D/g, '') || 'customer'}@${process.env.CUSTOMER_EMAIL_DOMAIN || 'example.com'}`;
 
 export function buildMcpServer() {
   const server = new McpServer({ name: 'bisi-provisions', version: '1.0.0' });
