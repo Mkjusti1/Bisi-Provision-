@@ -15,6 +15,7 @@ async function api(path, { method = 'GET', body } = {}) {
       method, headers, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(8000),
     });
   } catch (e) {
+    console.error('order API call failed:', method, path, e.message);
     return { ok: false, status: 0, body: { error: { code: 'ORDER_SYSTEM_UNREACHABLE', message: e.message } } };
   }
   let json = null;

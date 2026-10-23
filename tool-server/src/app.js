@@ -6,6 +6,17 @@ import { mockApi } from './mockApi.js';
 export function createApp() {
   const app = express();
   app.use(express.json());
+  
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const rpc = req.path === '/mcp'
+      ? ` rpc=${req.body?.method || '?'}${req.body?.params?.name ? ':' + req.body.params.name : ''}`
+      : '';
+    console.log(`${new Date().toISOString()} ${req.method} ${req.path} ${res.statusCode} ${Date.now() - start}ms${rpc}`);
+  });
+  next();
+});
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
