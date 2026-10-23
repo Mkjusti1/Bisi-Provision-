@@ -95,6 +95,7 @@ export function buildMcpServer() {
         });
       } catch (e) {
         // Roll back the stock reservation so nothing is held for a link that never existed.
+        console.error('Paystack initialize failed:', e.kind, e.status, e.message, JSON.stringify(e.body ?? null).slice(0, 500));
         await api(`/orders/${order.id}/release`, { method: 'POST' });
         const kind = e instanceof PaystackError ? e.kind : 'provider';
         return fail('PAYMENT_PROVIDER_ERROR',
