@@ -34,9 +34,16 @@ const fromApiError = (r) => {
     e.details ? { details: e.details } : {});
 };
 
+// Lagos wall-clock time for customer-facing messages, e.g. "9:14 am".
+const lagosTime = (iso) =>
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Lagos', hour: 'numeric', minute: '2-digit', hour12: true,
+  }).format(new Date(iso));
+
 const publicOrder = (o) => ({
   order_id: o.id, status: o.status, items: o.items, subtotal: o.subtotal, delivery_fee: o.delivery_fee,
-  total: o.total, zone: o.zone, address: o.address, expires_at: o.expires_at,
+  total: o.total, zone: o.zone, address: o.address,
+  expires_at: o.expires_at, expires_at_lagos: lagosTime(o.expires_at),
   ...(o.delivery_estimate ? { delivery_estimate: o.delivery_estimate } : {}),
 });
 
@@ -74,7 +81,7 @@ export function buildMcpServer() {
 
   server.tool(
     'create_order',
-    'Validate stock and minimum order, reserve stock for 30 minutes, and create a Paystack (test mode) payment link. Returns order_id, total, payment_url and expires_at.',
+    'Validate stock and minimum order, reserve stock for 30 minutes, and create a Paystack (test mode) payment link. Returns order_id, total, payment_url, expires_at and expires_at_lagos.',
     {
       items: z.array(z.object({ sku: z.string(), quantity: z.number().int().positive() })).min(1),
       zone: z.string().describe('"mainland" or "island"'),
@@ -135,6 +142,8 @@ export function buildMcpServer() {
           { cause: e instanceof PaystackError ? e.kind : 'provider' });
       }
 
+      const expiry = { expires_at: order.expires_at, expires_at_lagos: lagosTime(order.expires_at) };
+
       if (tx.status === 'success') {
         if (tx.amountKobo !== order.total * 100 || tx.currency !== 'NGN')
           return ok({ order_id, status: 'needs_review',
@@ -147,11 +156,11 @@ export function buildMcpServer() {
         return fromApiError(confirmed);
       }
       if (tx.status === 'failed' || tx.status === 'reversed')
-        return ok({ order_id, status: 'failed', expires_at: order.expires_at });
+        return ok({ order_id, status: 'failed', ...expiry });
       if (order.status !== 'pending_payment')
         return ok({ order_id, status: 'expired', message: 'The order expired and stock was released.' });
-      if (tx.status === 'abandoned') return ok({ order_id, status: 'abandoned', expires_at: order.expires_at });
-      return ok({ order_id, status: 'pending', expires_at: order.expires_at });
+      if (tx.status === 'abandoned') return ok({ order_id, status: 'abandoned', ...expiry });
+      return ok({ order_id, status: 'pending', ...expiry });
     },
   );
 

@@ -39,7 +39,7 @@ npm test
 
 ## Deploy
 
-Deploy `tool-server/` to any host with a public HTTPS URL (Render, Railway, Fly). Set `PAYSTACK_SECRET_KEY` (test key) and `AUTH_TOKEN`. Start command: `npm start`. Check `GET /health`.
+Deploy `tool-server/` to any host with a public HTTPS URL (Render). Set `PAYSTACK_SECRET_KEY` (test key) and `AUTH_TOKEN`. Start command: `npm start`. Check `GET /health`.
 
 Order state is in memory and resets on restart. That is fine for a demo, and the go-live note says what to replace it with.
 

@@ -62,13 +62,19 @@ export function deliveryFee(zone, subtotal) {
   return { zone: z, fee: free ? 0 : RULES.fees[z], free_delivery: free };
 }
 
-// Lazily expire unpaid orders and give stock back.
+// Lazily expire an unpaid order and give its stock back.
 export function expireIfNeeded(order, now = new Date()) {
   if (order.status === 'pending_payment' && new Date(order.expires_at) <= now) {
     releaseStock(order);
     order.status = 'expired';
   }
   return order;
+}
+
+// Expire every overdue unpaid order. Called before stock is read, so abandoned
+// orders give their stock back even if nobody asks about that specific order.
+export function sweepExpired(now = new Date()) {
+  for (const o of state.orders.values()) expireIfNeeded(o, now);
 }
 
 export function releaseStock(order) {

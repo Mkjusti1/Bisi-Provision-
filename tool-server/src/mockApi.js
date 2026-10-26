@@ -1,5 +1,7 @@
 import express from 'express';
-import { state, reset, RULES, deliveryFee, deliveryEstimate, expireIfNeeded, releaseStock } from './store.js';
+import {
+  state, reset, RULES, deliveryFee, deliveryEstimate, expireIfNeeded, releaseStock, sweepExpired,
+} from './store.js';
 
 const err = (res, status, code, message, details) =>
   res.status(status).json({ error: { code, message, ...(details ? { details } : {}) } });
@@ -7,9 +9,13 @@ const err = (res, status, code, message, details) =>
 export function mockApi() {
   const r = express.Router();
 
-  r.get('/products', (_req, res) => res.json({ products: [...state.products.values()] }));
+  r.get('/products', (_req, res) => {
+    sweepExpired();
+    res.json({ products: [...state.products.values()] });
+  });
 
   r.get('/products/:sku', (req, res) => {
+    sweepExpired();
     const p = state.products.get(req.params.sku.toUpperCase());
     if (!p) return err(res, 404, 'UNKNOWN_SKU', `No product with sku ${req.params.sku}`);
     res.json({ product: p });
@@ -23,6 +29,7 @@ export function mockApi() {
   });
 
   r.post('/orders', (req, res) => {
+    sweepExpired();
     const { items, zone, address, customer_name, customer_phone } = req.body || {};
     if (!Array.isArray(items) || items.length === 0)
       return err(res, 422, 'INVALID_ITEMS', 'items must be a non-empty list');
